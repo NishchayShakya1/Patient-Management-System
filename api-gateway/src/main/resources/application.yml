@@ -4,22 +4,62 @@ server:
 spring:
   cloud:
     gateway:
-      routes:
-        ## REST CLIENT -> http://localhost:4004/api/patients
-        ## API GATEWAY -> http://patient-service:4000/patients
-        ## PATIENT SERVICE (SPRING BOOT APP) -> /patients -> Patients Array
-        - id: patient-service-route
-          uri: http://patient-service:4000
-          predicates:
-            - Path=/api/patients/**
-          filters:
-            - StripPrefix=1
+      server:
+        webflux:
+          routes:
 
-        ## REST CLIENT -> http://localhost:4004/api-docs/patients
-        ## API GATEWAY -> http://patient-service:4000/v3/api-docs
-        - id: api-docs-patient-route
-          uri: http://patient-service:4000
-          predicates:
-            - Path=/api-docs/patients
-          filters:
-            - RewritePath=/api-docs/patients,/v3/api-docs
+            ## =========================================================
+            ## AUTH SERVICE ROUTE
+            ##
+            ## Client Request:
+            ## http://localhost:4004/auth/login
+            ##
+            ## API Gateway forwards request to:
+            ## http://auth-service:4005/login
+            ##
+            ## StripPrefix=1 removes "/auth"
+            ## =========================================================
+            - id: auth-service-route
+              uri: http://auth-service:4005
+              predicates:
+                - Path=/auth/**
+              filters:
+                - StripPrefix=1
+
+            ## =========================================================
+            ## PATIENT SERVICE ROUTE
+            ##
+            ## Client Request:
+            ## http://localhost:4004/api/patients
+            ##
+            ## API Gateway forwards request to:
+            ## http://patient-service:4000/patients
+            ##
+            ## StripPrefix=1 removes "/api"
+            ## =========================================================
+            - id: patient-service-route
+              uri: http://patient-service:4000
+              predicates:
+                - Path=/api/patients/**
+              filters:
+                - StripPrefix=1
+                - JwtValidation
+
+            ## =========================================================
+            ## SWAGGER / OPENAPI DOCS ROUTE
+            ##
+            ## Client Request:
+            ## http://localhost:4004/api-docs/patients
+            ##
+            ## API Gateway forwards request to:
+            ## http://patient-service:4000/v3/api-docs
+            ##
+            ## RewritePath changes:
+            ## /api-docs/patients -> /v3/api-docs
+            ## =========================================================
+            - id: api-docs-patient-route
+              uri: http://patient-service:4000
+              predicates:
+                - Path=/api-docs/patients
+              filters:
+                - RewritePath=/api-docs/patients,/v3/api-docs
